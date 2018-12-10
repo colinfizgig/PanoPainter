@@ -1,0 +1,989 @@
+<!doctype html>
+<html lang="en">
+  <head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	
+	<title>painting</title>
+	
+	<link href="./scripts/nouislider.min.css" rel="stylesheet">
+	<link href="./scripts/paintStyle.css" rel="stylesheet">
+
+  </head>
+  
+  <body>
+
+	<div id="options" class="menDivActive">
+			
+			<div id="menuHide" onclick="toggleMenu()">
+				<div class="arrowLeft" id="arrowContainer">
+						<svg version="1.1" id="arrowSVG" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="512px" height="391.68px" viewBox="-0.333 0 512 391.68" enable-background="new -0.333 0 512 391.68" xml:space="preserve">
+					<path d="M481.205,165.384H103.673L217.056,52.008c11.902-11.899,11.902-31.177,0-43.083c-11.887-11.903-31.188-11.896-43.073,0
+						L8.589,174.302c-5.705,5.705-8.921,13.459-8.921,21.545c0,8.078,3.216,15.826,8.921,21.538l165.394,165.377
+						c5.949,5.949,13.74,8.918,21.541,8.918c7.798,0,15.596-2.969,21.538-8.918c11.903-11.9,11.903-31.184,0-43.083l-113.389-113.37
+						h377.532c16.817,0,30.463-13.651,30.463-30.462C511.668,179.014,498.022,165.384,481.205,165.384z"/>
+					</svg>
+				</div>
+
+			</div>
+			<div id="environment"></div>
+			<form class="controls export">
+				<input type="button" value="Use StreetView Guide" id="useStreetView" onclick="toggleGuideMode()">
+			</form>
+			<div id="map"></div>
+
+			<div class="block" id="mapSearch">
+				<form id="map_form">
+					<input type="text" name="address" id="address" />
+					<button type="submit" class="primary button" id="searchButton" style="height: 30px; margin-left:2px; margin-bottom:10px">Search</button>
+				</form>
+			</div>
+			
+			<div class="block" id="mapControls">
+				<button type="submit" id="myLocationButton" style="width: 200px; height: 28px; margin-left:6px; margin-bottom:10px" class="button">Use my location</button>
+				<button type="submit" id="fullscreenButton" style="width: 200px; height: 28px; margin-left:6px; margin-bottom:10px" class="button">Go fullscreen</button>
+			</div>
+			
+			
+			<form name="form2" method="post" action="">
+				<input type="file" id="loadImageBtn">
+				<label for="loadImageBtn">UPLOAD AN IMAGE</label>
+			</form>
+			
+			<form class="controls export">
+				<input type="button" value="Export as PNG" id="submitBtn" onclick="saveImage()">
+				<input type="button" value="Toggle Erasor" id="eraseSet" onclick="togglePaintMode()">
+				<input type="button" value="Clear Image" id="clearBtn" onclick="clearPainting()">
+			</form>
+			
+			<div id="brushSize"></div>
+			<div class="colorPic">
+				<input class="color alpha big" value="#B6BD79" style="background-color:#B6BD79" />
+			</div>	
+			<div class="block" id="status" >
+				<div id="message" ></div>
+				<div id="error" ></div>
+			</div>
+		</div>
+		
+		<div id="preloader" >
+			<div id="bar" ></div>
+		</div>
+		<div id="scrollCam" style="left: 0px; bottom: 0px">
+			<div id="scrollCamLbl">DRAG TO ROTATE VIEW</div>
+		</div>
+
+	
+	<script type="text/javascript" src="./scripts/three.colin.min.js"></script>
+	<script type="text/javascript" src="./scripts/Stats.js"></script>
+	<script type="text/javascript" src="./scripts/OrbitControls.js"></script>
+	
+	<script type="text/javascript" src="https://maps.google.com/maps/api/js?sensor=false"></script>
+	<script type="text/javascript" src="./scripts/GSVPano.js"></script>
+	<script type="text/javascript" src="./scripts/nouislider.min.js"></script>
+	<script type="text/javascript" src="./scripts/jquery-2.1.4.min.js"></script>
+	<script type="text/javascript" src="./scripts/jqColorPicker.min.js"></script>
+	
+	<script src="./scripts/uAgent_DeviceTest.js"></script>
+    
+    <script>
+       //  call device test
+	   var myDevice = uAgentTest();
+	   
+		// Three.js Stuff starts here.
+		
+		// scene objects
+		var container, stats;
+		var camera, scene, raycaster, renderer;
+		var geometry, object, textureWidth, textureHeight, material;
+		var controls;
+		var fov = 80;
+		
+		//raycasting objects
+		var mouse = new THREE.Vector2(), INTERSECTED;
+		var touchVec = new THREE.Vector2();
+		
+		//canvas painting objects
+		var canvas, context;		
+		var texture;
+
+		var isDrawing, lastPoint;
+			
+		var uvIntersect, xPix, yPix;
+		
+		var strokeColor = "#000000";
+		var brushSize = 5;
+		
+		var panoWidth = 2048;
+		var panoHeight = 1024;
+		
+		var grid = false;
+		var erasor = false;
+		
+		// google geo Pano tracing objects
+	
+		var loader,
+			map,
+			sphereMap,
+			uniforms,
+			attributes,
+			mesh,
+			marker;
+		
+		var preloader = document.getElementById( 'preloader' );
+		var bar = document.getElementById( 'bar' );
+		var options = document.getElementById( 'options' );
+		
+		var texture_placeholder,
+			isUserInteracting = false,
+			onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+			lon = 0, onMouseDownLon = 0,
+			lat = 0, onMouseDownLat = 0,
+			phi = 0, theta = 0;
+			lat = 15;
+
+		window.onload = function(){
+			if(navigator.onLine){
+					// create streeview interface
+					createStreeView();
+					document.getElementById("useStreetView").disabled = false;
+					//  setup map button functionality
+					loadPanorama( myLatlng );
+				}else{
+					loadPanorama( myLatlng );
+					document.getElementById("useStreetView").disabled = true;
+				}
+				
+				var el = document.getElementById( 'myLocationButton' );
+						el.addEventListener( 'click', function( event ) {
+						event.preventDefault();
+						navigator.geolocation.getCurrentPosition( geoSuccess, geoError );
+					}, false );
+				navigator.pointer = navigator.pointer || navigator.webkitPointer;
+				
+			init();
+		}
+		
+			
+		// setup for Geo Map loading
+		function setProgress( progress ) {
+				bar.style.width = ( preloader.clientWidth - 6 ) * progress / 100 + 'px';
+			}
+			
+		function showProgress( show ) {
+			preloader.style.opacity = ( show == true )?1:0;
+			preloader.style.display = ( show == true )?'block':'none';
+		}
+		
+		var menuToggle = false;
+		
+		function toggleMenu(){
+			if(menuToggle == false){
+				menuToggle = true;
+				document.getElementById("options").className = "menDivHidden";
+				document.getElementById("arrowContainer").className = "arrowRight";
+			}else{
+				menuToggle = false;
+				document.getElementById("options").className = "menDivActive";
+				document.getElementById("arrowContainer").className = "arrowLeft";
+			}
+		}
+		
+		function geoSuccess( position ) {
+		
+			var currentLocation = new google.maps.LatLng( position.coords.latitude, position.coords.longitude );
+			map.panTo( currentLocation );
+			addMarker( currentLocation ); // move to position (thanks @theCole!)
+
+		}
+			
+		function geoError( message ) {
+			showError( message );
+		}
+			
+		function showError( message ) {
+			errorDiv.innerHTML = message;
+		}
+			
+		function showMessage( message ) {
+			showError('');
+			messageDiv.innerHTML = message;
+		}
+
+		// init scene and canvas objects
+		var myLatlng;
+
+		function createStreeView(){
+			// setup google maps control div
+				var locations = [
+					{ lat: 51.50700703827454, lng: -0.12791916931155356 },
+					{ lat: 32.6144404, lng: -108.9852017 },
+					{ lat: 39.36382677360614, lng: 8.431220278759724 },
+					{ lat: 59.30571937680209, lng: 4.879402148657164 },
+					{ lat: 28.240385123352873, lng: -16.629988706884774 },
+					{ lat: 50.09072314148827, lng: 14.393133454556278 },
+					{ lat: 41.413416092316275, lng: 2.1531126527786455 },
+					{ lat: 35.69143938066447, lng: 139.695139627539 },
+					{ lat: 35.67120372775569, lng: 139.77167914398797 },
+					{ lat: 54.552083679428065, lng: -3.297380963134742 }
+				];
+				
+				var pos;
+				if( window.location.hash ) {
+					parts = window.location.hash.substr( 1 ).split( ',' );
+					pos = { lat: parts[ 0 ], lng: parts[ 1 ] };
+				} else {
+					pos = locations[ Math.floor( Math.random() * locations.length ) ];
+				}
+				
+				myLatlng = new google.maps.LatLng( pos.lat, pos.lng );
+				
+				var myOptions = {
+					zoom: 14,
+					center: myLatlng,
+					mapTypeId: google.maps.MapTypeId.ROADMAP,
+					streetViewControl: false
+				}
+				map = new google.maps.Map( document.getElementById( 'map' ), myOptions );
+				google.maps.event.addListener(map, 'click', function(event) {
+					addMarker(event.latLng);
+				});
+				
+				geocoder = new google.maps.Geocoder();
+		}
+		
+		function init() {
+		
+				var myScrollBtn = document.getElementById("scrollCam");
+
+				myScrollBtn.style.left = (window.innerWidth/2 - myScrollBtn.clientWidth/2) + "px";
+				myScrollBtn.style.bottom = ((-1 * myScrollBtn.clientHeight/2 - 10) + "px");
+		
+				container = document.createElement( 'div' );
+				container.id = "container";
+				document.body.appendChild( container );
+				
+				canvas = document.createElement('canvas');
+				canvas.width = panoWidth;
+				canvas.height = panoHeight;
+				context = canvas.getContext('2d');
+					
+				context.lineJoin = context.lineCap = 'round';
+				context.lineColor = "#FF0000";
+	
+				//create three.js scene
+
+				scene = new THREE.Scene();
+				
+				camera = new THREE.PerspectiveCamera( fov, window.innerWidth / window.innerHeight, 1, 1100 );
+				scene.add( camera );
+				
+				// create sphere for streetview behind painting surface
+				
+				mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( './Images/placeholder.jpg' ) } ) );
+				mesh.scale.x = -1;
+				scene.add( mesh );	
+				
+				// create paintable texture from canvas
+				texture = new THREE.Texture(canvas);
+				texture.generateMipmaps = false;
+				texture.magFilter = THREE.LinearFilter;
+				texture.minFilter = THREE.LinearFilter;
+				
+				material = new THREE.MeshBasicMaterial({
+						map : texture,
+						transparent: true,
+						opacity: 1.0
+						
+				});
+				texture.flipY = true;
+				
+				texture.needsUpdate = true;
+				
+				geometry = new THREE.SphereGeometry( 40, 40, 40 );
+				geometry.applyMatrix(new THREE.Matrix4().makeScale(-1, 1, 1));
+				
+				object = new THREE.Mesh( geometry, material );
+				//object.dynamic = true;
+				
+				scene.add( object );
+				camera.position.x = 0.1;
+
+				raycaster = new THREE.Raycaster();
+
+				renderer = new THREE.WebGLRenderer({ alpha: true });
+				renderer.setClearColor( 0xFFFFFF );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.sortObjects = false;
+				container.appendChild(renderer.domElement);
+
+				stats = new Stats();
+				stats.domElement.style.position = 'absolute';
+				stats.domElement.style.top = '0px';
+				container.appendChild( stats.domElement );
+
+				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.addEventListener('touchmove', onDocumentTouchMove, false );
+
+				function lockPointer () {
+					
+					if( navigator.pointer ) {
+						navigator.pointer.lock( document.body, function() {  
+							console.log( 'Pointer locked' ); 
+						}, function() { 
+							console.log( 'No pointer lock' ); 
+						} );  
+					}
+				}
+				
+				var el = document.getElementById( 'fullscreenButton' );
+				
+				if( el ) {
+					el.addEventListener( 'click', function( e ) {
+					
+						var myScrollBtn = document.getElementById("scrollCam");
+
+						myScrollBtn.style.left = (screen.width/2 - myScrollBtn.clientWidth/2) + "px";
+						myScrollBtn.style.bottom = ((-1 * myScrollBtn.clientHeight/2 - 10) + "px");
+						
+						document.body.onwebkitfullscreenchange = function(e) {
+						
+							lockPointer();
+							document.body.onwebkitfullscreenchange = function() {
+							
+							};
+						};
+						document.body.onmozfullscreenchange = function(e) {
+							
+							lockPointer();
+							document.body.onmozfullscreenchange = function() {
+
+							};
+						};
+						if( document.body.webkitRequestFullScreen ) document.body.webkitRequestFullScreen();
+						if( document.body.mozRequestFullScreen ) document.body.mozRequestFullScreen();
+						e.preventDefault();
+					}, false );
+				}
+				
+				el = document.getElementById( 'searchButton' );
+				el.addEventListener( 'click', function( event ) {
+					event.preventDefault();
+					findAddress( document.getElementById("address").value );
+				}, false );
+				
+				errorDiv = document.getElementById( 'error' );
+				messageDiv = document.getElementById( 'message' );
+				
+				controls = new THREE.OrbitControls(camera);
+				controls.noPan = true;
+				controls.noZoom = true; 
+				controls.autoRotate = false;
+				controls.autoRotateSpeed = 0.00;
+				controls.enabled = false;
+				
+				if(myDevice == "computer browser") {
+					container.addEventListener("mousedown", cmouseDown, false);
+					scrollCam.addEventListener("mousedown", toggleCamControls, false);
+				}else{
+
+				}
+				
+				container.addEventListener( 'touchstart', ctouchStart, false);
+				scrollCam.addEventListener("touchstart", toggleCamControlsT, false);
+				
+				render();
+				
+			}// end of init
+			
+			function findAddress( address ) {
+		
+				showMessage( 'Getting coordinates...' );
+				geocoder.geocode( { 'address': address}, function(results, status) {
+					if (status == google.maps.GeocoderStatus.OK) {
+						map.setCenter(results[0].geometry.location);
+						showMessage( 'Address found.' );
+						addMarker( results[0].geometry.location );
+					} else {
+						showError("Geocode was not successful for the following reason: " + status);
+						showProgress( false );
+					}
+				});
+				google.maps.GeocoderStatus.OK;
+			}
+			
+			function addMarker(location) {
+				if( marker ) marker.setMap( null );
+				marker = new google.maps.Marker({
+					position: location,
+					map: map
+				});
+				marker.setMap( map ); 
+				loadPanorama( location );
+			}
+			
+			function loadimage(e1) {
+				var filename = e1.target.files[0]; 
+				var fr = new FileReader();
+				fr.onload = imageHandler;  
+				fr.readAsDataURL(filename); 
+			}
+			
+			var myImage = document.createElement("img");
+			
+			function imageHandler(e2) {
+				myImage = document.createElement("img");
+				myImage.onload = function(event) {
+					context.globalCompositeOperation = "source-over";
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					context.drawImage(event.target, 0, 0);
+					texture.needsUpdate = true;
+				};
+				myImage.src = e2.target.result;
+			}
+			
+			document.getElementById("loadImageBtn").addEventListener('change', loadimage, false);
+
+			function loadPanorama( location ) {
+			
+				if(grid == false){
+					setProgress( 0 );
+					showProgress( true );
+					
+					loader = new GSVPANO.PanoLoader( {
+						useWebGL: false,
+						zoom: 3
+					} );
+					loader.onSizeChange = function() { 
+						
+					};
+					loader.onProgress = function( p ) {
+						setProgress( p );
+					};
+					loader.onError = function( message ) {
+						showError( message );
+						showProgress( false );
+					};
+					loader.onPanoramaLoad = function() {
+						
+						window.location.hash = location.lat() + ',' + location.lng();
+					
+						var source = this.canvas[ 0 ];
+						mesh.material.map = new THREE.Texture( source ); 
+						mesh.material.map.needsUpdate = true;
+						
+						
+						showMessage( 'Street view data ' + this.copyright + '.' );
+						
+						showProgress( false );
+					};
+
+					loader.load( location );
+
+					document.getElementById("map").style.visibility = "visible";
+					document.getElementById("map").style.height = "200px";
+					document.getElementById("mapControls").style.visibility = "visible";
+					document.getElementById("mapControls").style.height = "100px";
+					document.getElementById("mapSearch").style.visibility = "visible";
+					document.getElementById("mapSearch").style.height = "40px";
+				}else{
+				
+					setProgress( 0 );
+					showProgress( true );
+					// instantiate a loader
+					var loader = new THREE.TextureLoader();
+
+					// load a resource
+					loader.load(
+						// resource URL
+						'./images/gridWorld.jpg',
+						// Function when resource is loaded
+						function ( texture ) {
+							// do something with the texture
+							mesh.material.map = texture;
+							mesh.material.transparency = false;
+							mesh.material.map.needsUpdate = true;
+							showProgress( false );
+						},
+						// Function called when download progresses
+						function ( xhr ) {
+							console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
+							setProgress( (xhr.loaded / xhr.total * 100)  );
+						},
+						
+						// Function called when download errors
+						function ( xhr ) {
+							console.log( 'An error happened' );
+						}
+					);
+					document.getElementById("map").style.visibility = "hidden";
+					document.getElementById("map").style.height = "0px";
+					document.getElementById("mapControls").style.visibility = "hidden";
+					document.getElementById("mapControls").style.height = "0px";
+					document.getElementById("mapSearch").style.visibility = "hidden";
+					document.getElementById("mapSearch").style.height = "0px";
+
+				}
+				
+				
+			}
+			
+			// setup window resize and camera controls
+
+			window.addEventListener( 'resize', onWindowResize, false );
+
+		function onMouseWheel( event ) {
+
+				// WebKit
+
+				if ( event.wheelDeltaY ) {
+
+					fov -= event.wheelDeltaY * 0.05;
+
+				// Opera / Explorer 9
+
+				} else if ( event.wheelDelta ) {
+
+					fov -= event.wheelDelta * 0.05;
+
+				// Firefox
+
+				} else if ( event.detail ) {
+
+					fov += event.detail * 1.0;
+
+				}
+
+				camera.projectionMatrix.makePerspective( fov, container.clientWidth / container.clientHeight, camera.near, camera.far );
+				
+		}
+
+		function cmouseDown(e) {
+			
+			if(controls.enabled == false){
+				isDrawing = true;
+				  findUVs();
+				  lastPoint = {x: xPix, y: yPix};
+			}
+			container.addEventListener("mousemove", cmouseMove, false);
+			container.addEventListener("mouseup", cmouseUp, false);
+		}
+		
+		function cmouseMove(e) {
+			
+			if(controls.enabled == false){
+			  if (!isDrawing) return;
+				findUVs();
+				
+				var currentPoint = {x: xPix, y: yPix};
+				var dist = distanceBetween(lastPoint, currentPoint);
+				var angle = angleBetween(lastPoint, currentPoint); 
+				
+				 if (erasor == false) {
+					
+					for (var i = 0; i < dist; i+=(brushSize/2)) {
+						context.globalCompositeOperation = "source-over";
+						
+						if(dist > 1024){
+							continue;
+						}else{
+							x = lastPoint.x + (Math.sin(angle) * i);
+							y = lastPoint.y + (Math.cos(angle) * i);
+							
+							var radgrad = context.createRadialGradient(x,y,(brushSize/2),x,y,brushSize);
+							
+							radgrad.addColorStop(0, strokeColor);
+							var midArray = strokeColor.split(/\(|\)|\)/);
+							var midColor;
+							var finalColor;
+							if(midArray[0] =="rgb"){
+								midColor = "rgba("+midArray[1]+", 0.5)";
+								finalColor = "rgba("+midArray[1]+", 0.0)";
+							}else{
+								var colorSplit = midArray[1].split(/,/);
+								midColor = "rgba("+colorSplit[0]+","+colorSplit[1]+","+colorSplit[2]+","+colorSplit[3]/2+")";
+								finalColor = "rgba("+colorSplit[0]+","+colorSplit[1]+","+colorSplit[2]+", 0.0)";
+							}
+							
+							radgrad.addColorStop(0.5, midColor);
+							radgrad.addColorStop(1, finalColor);
+							
+							context.fillStyle = radgrad;
+							context.fillRect(x-(brushSize), y-(brushSize), (brushSize*2), (brushSize*2));
+						}
+					}
+					lastPoint = currentPoint;
+				} else {
+					for (var i = 0; i < dist; i+=(brushSize/2)) {
+						context.globalCompositeOperation = "destination-out";
+						if(dist > 1024){
+							continue;
+						}else{
+							x = lastPoint.x + (Math.sin(angle) * i);
+							y = lastPoint.y + (Math.cos(angle) * i);
+							
+							var radgrad = context.createRadialGradient(x,y,(brushSize/2),x,y,brushSize);
+							
+							radgrad.addColorStop(0, "rgba(0,0,0,1.0)");
+							radgrad.addColorStop(0.5, "rgba(0,0,0,0.5)");
+							radgrad.addColorStop(1, "rgba(0,0,0,0.0)");
+							
+							context.fillStyle = radgrad;
+							context.fillRect(x-(brushSize), y-(brushSize), (brushSize*2), (brushSize*2));
+						}
+					}
+					lastPoint = currentPoint;
+				}
+
+				texture.needsUpdate = true;
+				
+			  }
+			  
+			}
+			
+		function cmouseUp(e) {
+
+			if(controls.enabled == false){
+				 isDrawing = false;
+			}
+			container.removeEventListener("mousemove", cmouseMove, false);
+			container.removeEventListener("mouseup", cmouseUp, false);
+		}
+
+		function ctouchStart(e) {
+
+			if (!e)
+					var e = event;
+
+			if (e.touches) {
+				if (e.touches.length == 1) { // Only deal with one finger
+					var touch = e.touches[0]; // Get the information for finger #1
+					touchVec.x = +( touch.pageX / window.innerWidth ) * 2 - 1;
+					touchVec.y = -( touch.pageY / window.innerHeight ) * 2 + 1;
+				}
+			}
+			
+			if(controls.enabled == false){
+				isDrawing = true;
+				findUVsTouch();
+				lastPoint = {x: xPix, y: yPix};
+			}
+			
+			container.addEventListener( 'touchmove', ctouchMove, false);
+			window.addEventListener( 'touchend', wtouchEnd, false);
+		}
+		
+		function ctouchMove(e) {
+			
+			if(controls.enabled == false){
+			  if (!isDrawing) return;
+				findUVsTouch();
+
+				var currentPoint = {x: xPix, y: yPix};
+				var dist = distanceBetween(lastPoint, currentPoint);
+				var angle = angleBetween(lastPoint, currentPoint); 
+				
+				 if (erasor == false) {
+					
+					for (var i = 0; i < dist; i+=(brushSize/2)) {
+						context.globalCompositeOperation = "source-over";
+						
+						if(dist > 1024){
+							continue;
+						}else{
+							x = lastPoint.x + (Math.sin(angle) * i);
+							y = lastPoint.y + (Math.cos(angle) * i);
+							
+							var radgrad = context.createRadialGradient(x,y,(brushSize/2),x,y,brushSize);
+							
+							radgrad.addColorStop(0, strokeColor);
+							var midArray = strokeColor.split(/\(|\)|\)/);
+							var midColor;
+							var finalColor;
+							if(midArray[0] =="rgb"){
+								midColor = "rgba("+midArray[1]+", 0.5)";
+								finalColor = "rgba("+midArray[1]+", 0.0)";
+							}else{
+								var colorSplit = midArray[1].split(/,/);
+								midColor = "rgba("+colorSplit[0]+","+colorSplit[1]+","+colorSplit[2]+","+colorSplit[3]/2+")";
+								finalColor = "rgba("+colorSplit[0]+","+colorSplit[1]+","+colorSplit[2]+", 0.0)";
+							}
+							
+							radgrad.addColorStop(0.5, midColor);
+							radgrad.addColorStop(1, finalColor);
+							
+							context.fillStyle = radgrad;
+							context.fillRect(x-(brushSize), y-(brushSize), (brushSize*2), (brushSize*2));
+						}
+					}
+					lastPoint = currentPoint;
+				} else {
+					for (var i = 0; i < dist; i+=(brushSize/2)) {
+						context.globalCompositeOperation = "destination-out";
+						if(dist > 1024){
+							continue;
+						}else{
+							x = lastPoint.x + (Math.sin(angle) * i);
+							y = lastPoint.y + (Math.cos(angle) * i);
+							
+							var radgrad = context.createRadialGradient(x,y,(brushSize/2),x,y,brushSize);
+							
+							radgrad.addColorStop(0, "rgba(0,0,0,1.0)");
+							radgrad.addColorStop(0.5, "rgba(0,0,0,0.5)");
+							radgrad.addColorStop(1, "rgba(0,0,0,0.0)");
+							
+							context.fillStyle = radgrad;
+							context.fillRect(x-(brushSize), y-(brushSize), (brushSize*2), (brushSize*2));
+						}
+					}
+					lastPoint = currentPoint;
+				}
+
+				texture.needsUpdate = true;
+			  }
+			}
+			
+			function wtouchEnd(e){
+				if(controls.enabled == false){
+					 isDrawing = false;
+				}
+				container.removeEventListener("touchmove", ctouchMove, false);
+				window.removeEventListener("touchend", wtouchEnd, false);
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				
+				var myScrollBtn = document.getElementById("scrollCam");
+
+				myScrollBtn.style.left = (window.innerWidth/2 - myScrollBtn.clientWidth/2) + "px";
+				myScrollBtn.style.bottom = ((-1 * myScrollBtn.clientHeight/2 - 10) + "px");
+
+			}
+
+			function onDocumentMouseMove( event ) {
+			
+				var element = document.getElementById("circleBrush");
+
+				event.preventDefault();
+
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+			}
+			
+			function onDocumentTouchMove( e ) {
+			
+				if (!e)
+					var e = event;
+
+				if (e.touches) {
+					if (e.touches.length == 1) { // Only deal with one finger
+						var touch = e.touches[0]; // Get the information for finger #1
+						touchVec.x = +( touch.pageX / window.innerWidth ) * 2 - 1;
+						touchVec.y = -( touch.pageY / window.innerHeight ) * 2 + 1;
+					}
+				}
+
+				event.preventDefault();
+			}
+			
+
+			//
+		function findUVs(){
+			// find intersections
+
+				raycaster.setFromCamera( mouse, camera );
+
+				intersects = raycaster.intersectObjects( scene.children );
+				
+				if ( intersects.length > 0 ) {
+
+					if ( INTERSECTED != intersects[ 0 ].point ) {
+
+						uvIntersect = intersects[0].uv;
+
+						xPix = uvIntersect.x * panoWidth;
+						yPix = (1-uvIntersect.y) * panoHeight;
+					}
+				}
+		}
+			
+		function findUVsTouch(){
+			// find intersections
+
+				raycaster.setFromCamera( touchVec, camera );
+
+				intersects = raycaster.intersectObjects( scene.children );
+				
+				if ( intersects.length > 0 ) {
+
+					if ( INTERSECTED != intersects[ 0 ].point ) {
+
+						uvIntersect = intersects[0].uv;
+
+						xPix = uvIntersect.x * panoWidth;
+						yPix = (1-uvIntersect.y) * panoHeight;
+					}
+				}
+		}
+			
+		function render() {
+				requestAnimationFrame(render);
+				controls.update();
+				//findUVs();
+				stats.update();
+				strokeColor = $('.color').css('background-color');
+				renderer.render( scene, camera );
+
+			}
+			
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// Interface Elements
+		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		
+		function toggleGuideMode(){
+		
+			if(grid == true){
+				grid = false;
+				document.getElementById("useStreetView").value = "Use Grid Guide"
+				loadPanorama( myLatlng );
+			}else{
+				grid = true;
+				document.getElementById("useStreetView").value = "Use StreetView Guide"
+				loadPanorama( myLatlng );
+			}
+		}
+	
+		function toggleCamControls(){
+			if(controls.enabled == false){
+				controls.enabled = true;
+				//document.getElementById("camRotate").value = "Disable Camera Rotation";
+				document.body.addEventListener("mouseup", toggleControlsOff, false);
+			}	
+		}
+		
+		function toggleCamControlsT(){
+			if(controls.enabled == false){
+				controls.enabled = true;
+				//document.getElementById("camRotate").value = "Disable Camera Rotation";
+				document.body.addEventListener("touchend", toggleControlsOffT, false);
+			}	
+		}
+		
+		function toggleControlsOff() {
+			controls.enabled = false;
+			//document.getElementById("camRotate").value = "Enable Camera Rotation";
+			document.body.removeEventListener("mouseup", toggleControlsOff, false);
+		}
+		
+		function toggleControlsOffT() {
+			controls.enabled = false;
+			//document.getElementById("camRotate").value = "Enable Camera Rotation";
+			document.body.removeEventListener("touchend", toggleControlsOffT, false);
+		}
+		
+		
+		function togglePaintMode(){
+			if(erasor == false){
+				document.getElementById("eraseSet").value = "Toggle Paint"
+				erasor = true;
+				document.body.addEventListener("mouseup", toggleOff, false);
+			}
+		}
+		
+		function toggleOff (){
+			document.getElementById("eraseSet").value = "Toggle Erasor"
+			erasor = false;
+			document.body.removeEventListener("mouseup", toggleOff, false);
+		}
+		
+		function clearPainting(){
+			context.fillStyle = "rgba(0,0,0,1.0)";
+			context.globalCompositeOperation = "destination-out";
+			context.fillRect(0, 0, panoWidth, panoHeight);
+			texture.needsUpdate = true;
+		}
+		
+		
+		var slider = document.getElementById('brushSize');
+
+		noUiSlider.create(slider, {
+			start: 5,
+			step: 1,
+			tooltips: [ true],
+			format: {
+			to: function ( value ) {
+				return value | 0;
+			  },
+			  from: function ( value ) {
+				return value | 0;
+			  }
+			},
+			range: {
+				'min': 1,
+				'max': 30
+			}
+		});
+		
+		slider.noUiSlider.on('update', function( values, handle ) {
+			brushSize = values[handle];
+		});
+		
+		$('.color').colorPicker();
+		
+		// Painting functions Start here.
+
+		function getRandomInt(min, max) {
+		  return Math.floor(Math.random() * (max - min + 1)) + min;
+		}
+		
+
+		function convertCanvasToImage(canvas) {
+			var image = new Image();
+			image.src = canvas.toDataURL("image/png");
+			image.height = image.height * -1;
+			window.open(image);
+		}
+
+		function saveImage(){
+			window.open(canvas.toDataURL("image/png"));
+			//convertCanvasToImage(canvas);
+		}
+		
+		// modified non aliased line drawing code.
+		
+		function distanceBetween(point1, point2) {
+		  return Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2));
+		}
+		function angleBetween(point1, point2) {
+		  return Math.atan2( point2.x - point1.x, point2.y - point1.y );
+		}
+		
+		// color conversion code
+		function hexToRgb(hex) {
+			// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+			var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+			hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+				return r + r + g + g + b + b;
+			});
+
+			var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+			return result ? {
+				r: parseInt(result[1], 16),
+				g: parseInt(result[2], 16),
+				b: parseInt(result[3], 16)
+			} : null;
+		}
+        
+			
+    </script>
+
+  </body>
+</html>

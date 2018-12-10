@@ -1,0 +1,336 @@
+			body {
+				cursor: default;
+				font-family: Monospace;
+				background-color: #f0f0f0;
+				margin: 0px;
+				overflow: hidden;
+			}
+			
+			div {
+				opacity: 50%;
+			}
+			
+			#submitBtn {
+				position: relative;
+				padding: 2px;
+				width: 200px;
+				margin-bottom: 10px;
+				margin-left: 6px;
+			}
+			
+			#loadImageBtn {
+				width: 0.1px;
+				height: 0.1px;
+				opacity: 0;
+				overflow: hidden;
+				position: absolute;
+				z-index: -1;
+			}
+			
+			#loadImageBtn + label {
+				position: relative;
+				padding-top: 5px;
+				padding-bottom: 5px;
+				width: 200px;
+				margin-bottom: 20px;
+				margin-left: 6px;
+				text-align: center;
+				
+				font: 10px Arial;
+				font-size: 0.9em;
+				font-weight: 200;
+				color: black;
+				background-color: #d9d9d9;
+				display: inline-block;
+			}
+
+			#loadImageBtn:focus + label,
+			#loadImageBtn+ label:hover {
+				background-color: #FFFFFF;
+				color: black;
+				border: solid;
+				padding-top: 4px;
+				padding-bottom: 4px;
+				width: 198px;
+				border-width: 1px;
+				border-color: blue;
+			}
+			
+			#camRotate {
+				position: relative;
+				padding: 2px;
+				width: 200px;
+				margin-bottom: 10px;
+				margin-left: 6px;
+			}
+			
+			#eraseSet {
+				position: relative;
+				padding: 2px;
+				width: 200px;
+				margin-bottom: 10px;
+				margin-left: 6px;
+			}
+			
+			#useStreetView {
+				position: relative;
+				padding: 2px;
+				width: 200px;
+				margin-bottom: 10px;
+				margin-left: 6px;
+			}
+			
+			#clearBtn {
+				position: relative;
+				padding: 2px;
+				width: 200px;
+				margin-bottom: 10px;
+				margin-left: 6px;
+			}
+			
+			.color {
+				position: relative;
+				padding: 10px;
+				width: 180px;
+				height: 20px;
+				margin-bottom: 140px;
+				margin-left: 6px;
+				margin-top: 20px;
+			}
+			
+			#brushSize {
+				position: relative;
+				width: 200px;
+				margin-top: 40px;
+				margin-left: 6px;
+			}
+			
+			a {
+				color: #fff;
+				text-decoration: none;
+				border-bottom: 1px dotted #fff;
+			}
+			a:hover {
+				border-bottom: 1px solid #fff
+			}
+			h1{ 
+				font: 24px Georgia; 
+				font-weight: bold;
+				margin: 0 0 .5em 0;
+			}
+			h2{ 
+				font: 16px Georgia; 
+				margin: 0 0 .5em 0;
+			}
+			
+			#title {
+				position: absolute;
+				top: 20px;
+				width: 300px;
+				left: 20px;
+				background-color: rgba(0,0,0,0.2);
+				border-radius: 3px;
+				padding: 10px;
+				overflow: auto;
+			}
+			#options{
+				cursor: default;
+				position: absolute;
+				top: 20px;
+				width: 300px;
+				background-color: rgba(0,0,0,0.4);
+				border-radius: 3px;
+				padding: 10px;
+				z-index: 0;
+			}
+			
+			.menDivActive {
+				right: 20px;
+				-webkit-transition: right 1s ease;
+				-moz-transition: right 1s ease;
+				-o-transition: right 1s ease;
+				transition: right 1s ease;
+			}
+			
+			.menDivHidden {
+				right: -320px;
+				-webkit-transition: right 1s ease;
+				-moz-transition: right 1s ease;
+				-o-transition: right 1s ease;
+				transition: right 1s ease;
+			}
+			
+			#menuHide{
+				cursor: default;
+				position: absolute;
+				top: 0px;
+				width: 40px;
+				height: 40px;
+				left: -48px;
+				background-color: rgba(0,0,0,0.4);
+				border-radius: 3px;
+				z-index: 0;
+			}
+			
+			#map{ 
+				width: 300px; 
+				height: 200px; 
+				z-index: 100; 
+				-webkit-box-shadow: 0px 0px 3px 3px rgba( 73, 73, 73, .2 );
+				-moz-box-shadow: 0px 0px 3px 3px rgba( 73, 73, 73, .2 );
+				-o-box-shadow: 0px 0px 3px 3px rgba( 73, 73, 73, .2 );
+				box-shadow: 0px 0px 3px 3px rgba( 73, 73, 73, .2 );	
+				margin-bottom:10px;
+			}
+			.button{ 
+				font-size: 11px 
+			}
+			#pano_form button{
+				float: left 
+			}
+			#map_form input{ 
+				background: rgba( 255,255,255,.5 ) url( ./Images/search.png ) no-repeat 5px 50%; 
+				padding-left: 25px; 
+				width: 185px; 
+				height: 26px; 
+				border: 1px solid #444; 
+				margin-top: 2px
+			}
+			#map_form input:focus{ 
+				background-color: rgba( 255,255,255,.85 ); 
+				border: 1px solid black 
+			}
+			#map_form button{ 
+				width: 80px; 
+				float: right 
+			}
+			#preloader{
+				pointer-events: none;
+				width: 306px;
+				height: 36px;
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				margin-left: -153px;
+				margin-top: -18px;
+				background-color: rgba(255,255,255,0.8);
+				border-radius: 3px;
+				-webkit-transition: opacity 1s ease-out;
+				-moz-transition: opacity 1s ease-out;
+				-o-transition: opacity 1s ease-out;
+			}
+			#bar{
+				pointer-events: none;
+				height: 30px;
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				margin-left: -150px;
+				margin-top: -15px;
+				background-color: rgba(0,0,0,0.8);
+				border-radius: 3px;
+			}
+			.block{ 
+				position: relative;
+				line-height: 2.5em;
+				padding: 0;
+				margin: 5px 0 0 0;
+				display: block;
+			}
+			
+			#scrollCam {
+				position: fixed;
+				bottom: 0px;
+				left: 0px;
+				background-color: #d9d9d9;
+				border-radius: 30%;
+				width: 150px;
+				height: 150px;
+				border-style: solid;
+				border-color: black;
+				border-width: 1px;
+				z-index: 0;
+			}
+			
+			#scrollCamLbl{
+				margin: auto;
+				padding: 10px;
+				padding-top: 20%;
+				text-align: center;
+				font: 10px Arial;
+				font-weight: bold;
+			}
+			
+			.arrowLeft {
+				width: 32px;
+				height: 32px;
+				
+				-webkit-transform: rotate(180deg);
+				-moz-transform: rotate(180deg);
+				-o-transform: rotate(180deg);
+				transform: rotate(180deg);
+				
+				-webkit-transition: -webkit-transform 1s ease;
+				-moz-transition: -moz-transform 1s ease;
+				-o-transition: -o-transform 1s ease;
+				transition: transform 1s ease;
+				
+				 transition-delay: 1s;
+			}
+			
+			.arrowRight {
+				width: 32px;
+				height: 32px;
+			
+				-webkit-transform: rotate(0deg);
+				-moz-transform: rotate(0deg);
+				-o-transform: rotate(0deg);
+				transform: rotate(0deg);
+				
+				-webkit-transition: -webkit-transform 1s ease;
+				-moz-transition: -moz-transform 1s ease;
+				-o-transition: -o-transform 1s ease;
+				transition: transform 1s ease;
+				
+				 transition-delay: 1s;
+			}
+			
+			@-webkit-keyframes spin {
+				from  {-webkit-transform: rotate(0deg);}
+				to {-webkit-transform: rotate(180deg);}   
+			}
+			
+			@-moz-keyframes spin {
+				from {-moz-transform: rotate(0deg);}
+				to {-moz-transform: rotate(180deg);}   
+			}
+			
+			@-o-keyframes spin {
+				from  {-o-transform: rotate(0deg);}
+				to {-o-transform: rotate(180deg);}   
+			}
+			
+			@keyframes spin {
+				from  {transform: rotate(0deg);}
+				to {transform: rotate(180deg);}   
+			}
+			
+			#arrowSVG {
+				color: #d8d8d8;
+				margin: 3px;
+				margin-left: 4px;
+				width: 80%;
+				height: 80%;
+			}
+			
+			#arrowContainer {
+				margin: 4px;
+				width: 80%;
+				height: 80%;
+			}
+			
+			#arrowSVG path {
+				fill: currentColor;
+			}
+			
+			#error, #message{ line-height: 1.4em; margin-bottom: .5em }
