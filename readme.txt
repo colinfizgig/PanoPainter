@@ -9,7 +9,7 @@ The goal of the application is to allow 3d spherical map painting without having
 
 Here is an example of what the viewer outputs as a png.
 
-![alt text](https://github.com/colinfizgig/PanoPainter/blob/master/Marietta%20Square.png)
+![alt text](https://raw.githubusercontent.com/colinfizgig/PanoPainter/master/Marietta%20Square.png)
 
 Instructions:
 
