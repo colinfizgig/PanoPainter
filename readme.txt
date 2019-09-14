@@ -9,8 +9,10 @@ The goal of the application is to allow 3d spherical map painting without having
 
 Here is an example of what the viewer outputs as a png.
 
-![alt text](https://raw.githubusercontent.com/colinfizgig/PanoPainter/master/Marietta%20Square.png)
+[alt text](https://raw.githubusercontent.com/colinfizgig/PanoPainter/master/Marietta%20Square.png)
 
 Instructions:
 
 You can paint by tracing google streetview images as references or you can swap over to the grid view and use a grid to paint an equirectangular image.
+
+[link to Panopainter app](https://colinfizgig.github.io/PanoPainter/index.html)
